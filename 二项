@@ -1,0 +1,995 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="通过交互柱状图观察二项分布在 n 增大、p 减小时如何趋近泊松分布。"
+    />
+    <title>二项分布 × 泊松分布实验室</title>
+    <style>
+:root {
+  --ink: #15221f;
+  --muted: #68746f;
+  --paper: #f3f1e9;
+  --card: #fffdf7;
+  --line: #d9ddd4;
+  --blue: #2857d9;
+  --blue-dark: #173da9;
+  --blue-soft: #dce6ff;
+  --orange: #ff6a3d;
+  --orange-soft: #fff0e9;
+  --lime: #d8f16c;
+  --shadow: 0 28px 80px rgba(27, 43, 38, 0.12);
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 8% 10%, rgba(216, 241, 108, 0.24), transparent 23rem),
+    linear-gradient(180deg, #f6f4ed 0%, #eeeee7 100%);
+  font-family: Inter, "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input { font: inherit; }
+button { color: inherit; }
+
+.page-shell {
+  width: min(1440px, 100%);
+  margin: 0 auto;
+  padding: 0 38px;
+}
+
+.site-header {
+  min-height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(21, 34, 31, 0.13);
+}
+
+.brand {
+  display: inline-flex;
+  gap: 12px;
+  align-items: center;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+}
+
+.brand-mark {
+  width: 30px;
+  height: 30px;
+  padding: 5px;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  border-radius: 8px;
+  background: var(--ink);
+}
+
+.brand-mark i { display: block; width: 4px; border-radius: 3px 3px 1px 1px; background: var(--lime); }
+.brand-mark i:nth-child(1) { height: 7px; }
+.brand-mark i:nth-child(2) { height: 13px; }
+.brand-mark i:nth-child(3) { height: 18px; }
+.brand-mark i:nth-child(4) { height: 11px; }
+
+.header-note {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+.header-note span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4fa66f;
+  box-shadow: 0 0 0 5px rgba(79, 166, 111, 0.12);
+}
+
+.hero {
+  padding: 86px 0 76px;
+  text-align: center;
+}
+
+.eyebrow, .section-kicker {
+  color: #66726e;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.eyebrow { display: flex; justify-content: center; align-items: center; gap: 10px; }
+.eyebrow span { color: var(--blue); }
+
+.hero h1 {
+  max-width: 940px;
+  margin: 20px auto 22px;
+  font-family: "Noto Serif SC", "Songti SC", STSong, serif;
+  font-size: clamp(44px, 6.1vw, 84px);
+  font-weight: 650;
+  line-height: 1.08;
+  letter-spacing: -0.055em;
+}
+
+.hero h1 em {
+  position: relative;
+  z-index: 0;
+  color: var(--blue);
+  font-style: normal;
+}
+
+.hero h1 em::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: -0.06em;
+  right: -0.06em;
+  bottom: 0.03em;
+  height: 0.22em;
+  border-radius: 99px;
+  background: var(--lime);
+  transform: rotate(-2deg);
+}
+
+.hero-copy {
+  max-width: 650px;
+  margin: 0 auto;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.primary-button, .play-button {
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.primary-button {
+  margin-top: 30px;
+  padding: 14px 21px;
+  border-radius: 999px;
+  color: white;
+  background: var(--ink);
+  box-shadow: 0 12px 28px rgba(21, 34, 31, 0.22);
+  font-weight: 700;
+}
+
+.primary-button:hover, .play-button:hover { transform: translateY(-2px); }
+.primary-button:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid rgba(40, 87, 217, 0.35); outline-offset: 3px; }
+
+.play-icon {
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 8px solid currentColor;
+}
+
+.is-playing .play-icon {
+  width: 8px;
+  height: 10px;
+  border: 0;
+  border-left: 3px solid currentColor;
+  border-right: 3px solid currentColor;
+}
+
+.lab-card {
+  overflow: hidden;
+  border: 1px solid rgba(21, 34, 31, 0.12);
+  border-radius: 26px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.lab-topbar {
+  padding: 28px 32px 24px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.section-kicker { margin: 0 0 7px; color: var(--blue); }
+.lab-topbar h2, .explanation h2 { margin: 0; font-size: 28px; letter-spacing: -0.04em; }
+
+.legend { display: flex; gap: 24px; color: var(--muted); font-size: 12px; }
+.legend span { display: inline-flex; gap: 8px; align-items: center; white-space: nowrap; }
+.legend i { width: 16px; height: 10px; display: inline-block; border-radius: 3px; }
+.legend-binomial { background: var(--blue); }
+.legend-poisson { border: 2px solid var(--orange); background: rgba(255, 106, 61, 0.09); }
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-bottom: 1px solid var(--line);
+}
+
+.stat-block {
+  position: relative;
+  padding: 22px 26px;
+  border-right: 1px solid var(--line);
+}
+.stat-block:last-child { border-right: 0; }
+.stat-block > span { display: block; margin-bottom: 7px; color: var(--muted); font-size: 11px; }
+.stat-block strong { font-variant-numeric: tabular-nums; font-size: 29px; line-height: 1; letter-spacing: -0.04em; }
+.stat-block small { margin-left: 5px; color: #88918d; font-size: 11px; }
+.accent-stat { background: var(--blue-soft); }
+.accent-stat strong { color: var(--blue-dark); }
+.overlap-stat { background: #f1f7e4; }
+.overlap-stat strong { color: #3d6f44; }
+.overlap-stat small { display: block; margin: 5px 0 0; }
+
+.chart-and-controls { display: grid; grid-template-columns: minmax(0, 1fr) 300px; }
+.chart-column { min-width: 0; padding: 28px 26px 20px 24px; }
+.chart-heading { display: flex; justify-content: space-between; align-items: center; padding: 0 8px 12px; color: var(--muted); font-size: 11px; }
+.quality-badge { padding: 5px 9px; border-radius: 999px; color: var(--blue-dark); background: var(--blue-soft); font-weight: 700; }
+
+.chart-wrap { position: relative; width: 100%; min-height: 420px; }
+#distributionChart { display: block; width: 100%; height: auto; overflow: visible; }
+.x-axis-label { margin-top: -4px; color: var(--muted); text-align: center; font-size: 11px; }
+
+.chart-tooltip {
+  position: absolute;
+  z-index: 3;
+  width: 154px;
+  pointer-events: none;
+  padding: 10px 12px;
+  border: 1px solid rgba(21, 34, 31, 0.16);
+  border-radius: 10px;
+  color: var(--ink);
+  background: rgba(255, 253, 247, 0.97);
+  box-shadow: 0 14px 34px rgba(21, 34, 31, 0.15);
+  font-size: 11px;
+  line-height: 1.7;
+  backdrop-filter: blur(8px);
+}
+.chart-tooltip strong { display: block; margin-bottom: 2px; font-size: 13px; }
+.chart-tooltip i { display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 2px; }
+
+.control-panel {
+  padding: 26px 24px;
+  border-left: 1px solid var(--line);
+  background: #f8f7f1;
+}
+
+.control-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 26px; font-size: 13px; font-weight: 800; }
+.icon-button { width: 31px; height: 31px; cursor: pointer; border: 1px solid var(--line); border-radius: 50%; background: var(--card); font-size: 17px; }
+
+.control-group { display: block; margin-bottom: 26px; }
+.control-label { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; color: var(--muted); font-size: 11px; }
+.control-label output { color: var(--ink); font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.range-ends { display: flex; justify-content: space-between; margin-top: 6px; color: #929b97; font-size: 9px; }
+.range-ends i { font-style: normal; }
+
+input[type="range"] {
+  width: 100%;
+  height: 4px;
+  margin: 0;
+  appearance: none;
+  border-radius: 20px;
+  background: linear-gradient(90deg, var(--blue) var(--range-progress, 20%), #dfe2dc var(--range-progress, 20%));
+}
+input[type="range"]::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  appearance: none;
+  cursor: grab;
+  border: 4px solid white;
+  border-radius: 50%;
+  background: var(--blue);
+  box-shadow: 0 1px 6px rgba(21, 34, 31, 0.3);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  cursor: grab;
+  border: 4px solid white;
+  border-radius: 50%;
+  background: var(--blue);
+  box-shadow: 0 1px 6px rgba(21, 34, 31, 0.3);
+}
+
+.relationship-box { margin: 4px 0 18px; padding: 13px 14px; border-radius: 12px; background: var(--blue-soft); }
+.relationship-box span { display: block; margin-bottom: 4px; color: #5c6d9a; font-size: 9px; }
+.relationship-box strong { color: var(--blue-dark); font-size: 13px; }
+.relationship-box b { font-variant-numeric: tabular-nums; }
+
+.play-button { width: 100%; padding: 13px 16px; border-radius: 11px; color: white; background: var(--blue); font-size: 12px; font-weight: 750; box-shadow: 0 10px 22px rgba(40, 87, 217, 0.2); }
+.play-button:hover { background: var(--blue-dark); }
+
+.toggle-row { display: flex; align-items: center; margin-top: 23px; cursor: pointer; }
+.toggle-row > span:first-child { flex: 1; }
+.toggle-row strong, .toggle-row small { display: block; }
+.toggle-row strong { font-size: 11px; }
+.toggle-row small { margin-top: 3px; color: var(--muted); font-size: 9px; }
+.toggle-row input { position: absolute; opacity: 0; pointer-events: none; }
+.toggle { position: relative; width: 38px; height: 22px; border-radius: 99px; background: #cfd3cc; transition: background 160ms ease; }
+.toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: white; box-shadow: 0 2px 5px rgba(21,34,31,.2); transition: transform 160ms ease; }
+.toggle-row input:checked + .toggle { background: var(--orange); }
+.toggle-row input:checked + .toggle::after { transform: translateX(16px); }
+.toggle-row input:focus-visible + .toggle { outline: 3px solid rgba(40, 87, 217, 0.35); outline-offset: 3px; }
+
+.preset-row { display: flex; align-items: stretch; border-top: 1px solid var(--line); background: #faf9f4; }
+.preset-label { padding: 17px 25px; display: grid; place-items: center; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .08em; }
+.preset-row button { flex: 1; cursor: pointer; display: flex; justify-content: space-between; gap: 14px; padding: 17px 22px; border: 0; border-left: 1px solid var(--line); background: transparent; text-align: left; transition: background 150ms ease; }
+.preset-row button:hover { background: var(--blue-soft); }
+.preset-row button b { font-size: 11px; }
+.preset-row button span { color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+
+.explanation { padding: 112px 0 72px; }
+.explanation-heading { max-width: 600px; margin-bottom: 40px; }
+.explanation-heading h2 { margin: 8px 0 12px; font-size: 42px; }
+.explanation-heading > p:last-child { margin: 0; color: var(--muted); }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.steps article { min-height: 270px; padding: 24px; border: 1px solid rgba(21, 34, 31, 0.11); border-radius: 18px; background: rgba(255, 253, 247, 0.7); }
+.step-number { color: var(--blue); font-size: 10px; font-weight: 800; }
+.steps h3 { margin: 21px 0 8px; font-size: 17px; }
+.steps p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.75; }
+
+.mini-bars, .rare-dot-field, .lambda-lock { height: 102px; margin-top: 18px; }
+.mini-bars { display: flex; align-items: flex-end; gap: 7px; padding: 14px; border-bottom: 1px solid var(--line); }
+.mini-bars i { flex: 1; border-radius: 4px 4px 1px 1px; background: var(--blue-soft); border: 1px solid #b9c9f8; }
+.mini-bars i:nth-child(1) { height: 26%; } .mini-bars i:nth-child(2) { height: 48%; } .mini-bars i:nth-child(3) { height: 77%; } .mini-bars i:nth-child(4) { height: 64%; } .mini-bars i:nth-child(5) { height: 34%; }
+.rare-dot-field { display: grid; grid-template-columns: repeat(8, 1fr); align-items: center; gap: 9px; }
+.rare-dot-field i { aspect-ratio: 1; border-radius: 50%; background: #d9dcd6; }
+.rare-dot-field i:nth-child(3), .rare-dot-field i:nth-child(7) { background: var(--orange); box-shadow: 0 0 0 6px var(--orange-soft); }
+.lambda-lock { position: relative; display: grid; place-items: center; }
+.lambda-lock span { z-index: 1; display: grid; place-items: center; width: 65px; height: 65px; border-radius: 50%; color: var(--blue-dark); background: var(--lime); font-family: Georgia, serif; font-size: 30px; font-style: italic; }
+.lambda-lock i { position: absolute; width: 116px; height: 70px; border: 1px dashed #8c9893; border-radius: 50%; transform: rotate(-12deg); }
+
+.formula-strip { margin-bottom: 86px; padding: 28px 32px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 24px; border-radius: 18px; color: white; background: var(--ink); }
+.formula-strip div { display: flex; flex-direction: column; gap: 8px; }
+.formula-strip div:last-child { align-items: flex-end; text-align: right; }
+.formula-strip div span { color: #a9b5b1; font-size: 10px; letter-spacing: .08em; }
+.formula-strip strong { font-family: Georgia, "Times New Roman", serif; font-size: clamp(15px, 2vw, 21px); font-weight: 500; }
+.formula-arrow { padding: 8px 13px; border: 1px solid rgba(255,255,255,.18); border-radius: 999px; color: var(--lime); font-size: 10px; white-space: nowrap; }
+
+footer { min-height: 92px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(21, 34, 31, 0.13); color: var(--muted); font-size: 10px; }
+
+@media (max-width: 1000px) {
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .stat-block:nth-child(2) { border-right: 0; }
+  .stat-block:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+  .chart-and-controls { grid-template-columns: 1fr; }
+  .control-panel { border-top: 1px solid var(--line); border-left: 0; }
+  .control-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
+  .control-heading, .toggle-row { grid-column: 1 / -1; }
+  .preset-row { flex-wrap: wrap; }
+  .preset-label { width: 100%; justify-content: start; border-bottom: 1px solid var(--line); }
+}
+
+@media (max-width: 720px) {
+  .page-shell { padding: 0 15px; }
+  .header-note { display: none; }
+  .hero { padding: 58px 0 52px; }
+  .hero h1 { font-size: 45px; }
+  .hero h1 br { display: none; }
+  .lab-card { border-radius: 18px; }
+  .lab-topbar { padding: 22px 18px; align-items: flex-start; flex-direction: column; }
+  .legend { gap: 14px; flex-wrap: wrap; }
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .stat-block { padding: 17px 14px; }
+  .stat-block strong { font-size: 23px; }
+  .chart-column { padding: 20px 6px 14px; }
+  .chart-wrap { min-height: 265px; }
+  .control-panel { grid-template-columns: 1fr; padding: 22px 18px; }
+  .control-heading, .toggle-row { grid-column: auto; }
+  .preset-row button { min-width: 50%; }
+  .steps { grid-template-columns: 1fr; }
+  .explanation { padding-top: 80px; }
+  .explanation-heading h2 { font-size: 34px; }
+  .formula-strip { grid-template-columns: 1fr; text-align: center; }
+  .formula-strip div, .formula-strip div:last-child { align-items: center; text-align: center; }
+  .formula-arrow { justify-self: center; }
+  footer { gap: 20px; align-items: flex-start; flex-direction: column; justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+
+    </style>
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="site-header">
+        <a class="brand" href="#lab" aria-label="返回实验室顶部">
+          <span class="brand-mark" aria-hidden="true">
+            <i></i><i></i><i></i><i></i>
+          </span>
+          <span>概率分布实验室</span>
+        </a>
+        <div class="header-note"><span></span> 交互演示 · 参数实时计算</div>
+      </header>
+
+      <main id="lab">
+        <section class="hero" aria-labelledby="page-title">
+          <div class="eyebrow"><span>01</span> 稀有事件的极限</div>
+          <h1 id="page-title">二项分布，如何一步步<br /><em>变成</em>泊松分布？</h1>
+          <p class="hero-copy">
+            固定平均发生次数 <strong>λ = np</strong>。拖动 <strong>n</strong>，观察试验次数增加、
+            单次概率减小时，两组柱子如何逐渐重合。
+          </p>
+          <button class="primary-button" id="playHero" type="button">
+            <span class="play-icon" aria-hidden="true"></span>
+            开始自动演示
+          </button>
+        </section>
+
+        <section class="lab-card" aria-label="二项分布与泊松分布交互图表">
+          <div class="lab-topbar">
+            <div>
+              <p class="section-kicker">LIVE DISTRIBUTION</p>
+              <h2>让两组柱子靠近</h2>
+            </div>
+            <div class="legend" aria-label="图例">
+              <span><i class="legend-binomial"></i>二项分布 B(n, p)</span>
+              <span><i class="legend-poisson"></i>泊松分布 Pois(λ)</span>
+            </div>
+          </div>
+
+          <div class="stats-row" aria-live="polite">
+            <article class="stat-block">
+              <span>试验次数</span>
+              <strong id="nValue">10</strong>
+              <small>n</small>
+            </article>
+            <article class="stat-block">
+              <span>单次成功概率</span>
+              <strong id="pValue">0.3000</strong>
+              <small>p = λ/n</small>
+            </article>
+            <article class="stat-block accent-stat">
+              <span>平均发生次数</span>
+              <strong id="lambdaValue">3.0</strong>
+              <small>λ = np</small>
+            </article>
+            <article class="stat-block overlap-stat">
+              <span>概率质量重合度</span>
+              <strong id="overlapValue">—</strong>
+              <small id="distanceValue">总变差距离 —</small>
+            </article>
+          </div>
+
+          <div class="chart-and-controls">
+            <div class="chart-column">
+              <div class="chart-heading">
+                <span>概率 P(X = k)</span>
+                <span id="qualityBadge" class="quality-badge">正在计算</span>
+              </div>
+              <div class="chart-wrap" id="chartWrap">
+                <svg
+                  id="distributionChart"
+                  viewBox="0 0 920 460"
+                  role="img"
+                  aria-labelledby="chartTitle chartDescription"
+                >
+                  <title id="chartTitle">二项分布与泊松分布概率柱状图</title>
+                  <desc id="chartDescription">调整参数后，两种分布在各个整数取值处的概率会实时更新。</desc>
+                </svg>
+                <div class="chart-tooltip" id="chartTooltip" role="status" hidden></div>
+              </div>
+              <div class="x-axis-label">成功次数 / 事件发生次数 k</div>
+            </div>
+
+            <aside class="control-panel" aria-label="参数控制">
+              <div class="control-heading">
+                <span>控制台</span>
+                <button class="icon-button" id="resetButton" type="button" aria-label="恢复默认参数" title="恢复默认参数">↺</button>
+              </div>
+
+              <label class="control-group" for="lambdaSlider">
+                <span class="control-label">
+                  <span>固定平均次数 λ</span>
+                  <output id="lambdaOutput" for="lambdaSlider">3.0</output>
+                </span>
+                <input id="lambdaSlider" type="range" min="0.5" max="12" step="0.5" value="3" />
+                <span class="range-ends"><i>0.5</i><i>12</i></span>
+              </label>
+
+              <label class="control-group" for="nSlider">
+                <span class="control-label">
+                  <span>增大试验次数 n</span>
+                  <output id="nOutput" for="nSlider">10</output>
+                </span>
+                <input id="nSlider" type="range" min="0" max="100" step="0.1" value="20" />
+                <span class="range-ends"><i id="nMinLabel">3</i><i>1000</i></span>
+              </label>
+
+              <div class="relationship-box">
+                <span>参数始终满足</span>
+                <strong>p = λ ÷ n = <b id="relationshipP">0.3000</b></strong>
+              </div>
+
+              <button class="play-button" id="playButton" type="button">
+                <span class="play-icon" aria-hidden="true"></span>
+                <span class="play-label">自动增大 n</span>
+              </button>
+
+              <label class="toggle-row" for="poissonToggle">
+                <span>
+                  <strong>显示泊松参照</strong>
+                  <small>橙色柱保持不变</small>
+                </span>
+                <input id="poissonToggle" type="checkbox" checked />
+                <span class="toggle" aria-hidden="true"></span>
+              </label>
+            </aside>
+          </div>
+
+          <div class="preset-row" aria-label="参数预设">
+            <span class="preset-label">快速观察</span>
+            <button type="button" data-n="10"><b>差异明显</b><span>n = 10</span></button>
+            <button type="button" data-n="50"><b>逐渐接近</b><span>n = 50</span></button>
+            <button type="button" data-n="300"><b>几乎重合</b><span>n = 300</span></button>
+          </div>
+        </section>
+
+        <section class="explanation" aria-labelledby="principle-title">
+          <div class="explanation-heading">
+            <p class="section-kicker">WHY IT WORKS</p>
+            <h2 id="principle-title">只需抓住一个不变量</h2>
+            <p>让 λ 固定，改变的是一次次试验的颗粒度。</p>
+          </div>
+          <div class="steps">
+            <article>
+              <span class="step-number">01</span>
+              <div class="mini-bars sparse" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+              <h3>试验次数变多</h3>
+              <p><strong>n ↑</strong>，把观察过程切成越来越多次相互独立的试验。</p>
+            </article>
+            <article>
+              <span class="step-number">02</span>
+              <div class="rare-dot-field" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <h3>单次事件变稀有</h3>
+              <p><strong>p ↓</strong>，每一次试验中事件发生的可能性越来越小。</p>
+            </article>
+            <article>
+              <span class="step-number">03</span>
+              <div class="lambda-lock" aria-hidden="true"><span>λ</span><i></i></div>
+              <h3>平均次数不变</h3>
+              <p><strong>np = λ</strong> 始终固定，二项分布便趋近 Pois(λ)。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="formula-strip" aria-label="泊松极限定理公式">
+          <div>
+            <span>二项分布</span>
+            <strong>P(X=k)=C(n,k)p<sup>k</sup>(1−p)<sup>n−k</sup></strong>
+          </div>
+          <span class="formula-arrow">n→∞ · p→0 · np=λ</span>
+          <div>
+            <span>泊松分布</span>
+            <strong>P(X=k)=e<sup>−λ</sup>λ<sup>k</sup>/k!</strong>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <span>二项分布 × 泊松分布实验室</span>
+        <span>柱高表示精确概率，并非随机抽样结果</span>
+      </footer>
+    </div>
+
+    <script>
+(function attachProbabilityLab(globalScope) {
+  "use strict";
+
+  /**
+   * Exact binomial probabilities computed from
+   * P(X=0)=(1-p)^n and
+   * P(X=k+1)=P(X=k)·(n-k)/(k+1)·p/(1-p).
+   * The recurrence is algebraically identical to C(n,k)p^k(1-p)^(n-k).
+   */
+  function binomialPmf(n, p, limit) {
+    const values = Array(limit + 1).fill(0);
+    if (p <= 0) {
+      values[0] = 1;
+      return values;
+    }
+    if (p >= 1) {
+      if (n <= limit) values[n] = 1;
+      return values;
+    }
+    values[0] = Math.pow(1 - p, n);
+    const odds = p / (1 - p);
+    for (let k = 0; k < Math.min(n, limit); k += 1) {
+      values[k + 1] = values[k] * ((n - k) / (k + 1)) * odds;
+    }
+    return values;
+  }
+
+  /**
+   * Exact Poisson probabilities computed from
+   * P(Y=0)=e^(-lambda) and P(Y=k+1)=P(Y=k)·lambda/(k+1),
+   * equivalent to e^(-lambda)lambda^k/k!.
+   */
+  function poissonPmf(lambda, limit) {
+    const values = Array(limit + 1).fill(0);
+    values[0] = Math.exp(-lambda);
+    for (let k = 0; k < limit; k += 1) {
+      values[k + 1] = values[k] * lambda / (k + 1);
+    }
+    return values;
+  }
+
+  function totalVariationDistance(first, second) {
+    const length = Math.max(first.length, second.length);
+    let absoluteDifference = 0;
+    for (let k = 0; k < length; k += 1) {
+      absoluteDifference += Math.abs((first[k] || 0) - (second[k] || 0));
+    }
+    return 0.5 * absoluteDifference;
+  }
+
+  const api = { binomialPmf, poissonPmf, totalVariationDistance };
+  globalScope.ProbabilityLab = api;
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+})(typeof globalThis !== "undefined" ? globalThis : window);
+
+    </script>
+    <script>
+(() => {
+  "use strict";
+
+  const NS = "http://www.w3.org/2000/svg";
+  const MAX_N = 1000;
+  const state = {
+    lambda: 3,
+    n: 10,
+    showPoisson: true,
+    playing: false,
+    animationFrame: null,
+  };
+
+  const els = {
+    chart: document.querySelector("#distributionChart"),
+    chartWrap: document.querySelector("#chartWrap"),
+    tooltip: document.querySelector("#chartTooltip"),
+    nValue: document.querySelector("#nValue"),
+    pValue: document.querySelector("#pValue"),
+    lambdaValue: document.querySelector("#lambdaValue"),
+    overlapValue: document.querySelector("#overlapValue"),
+    distanceValue: document.querySelector("#distanceValue"),
+    qualityBadge: document.querySelector("#qualityBadge"),
+    lambdaSlider: document.querySelector("#lambdaSlider"),
+    nSlider: document.querySelector("#nSlider"),
+    lambdaOutput: document.querySelector("#lambdaOutput"),
+    nOutput: document.querySelector("#nOutput"),
+    nMinLabel: document.querySelector("#nMinLabel"),
+    relationshipP: document.querySelector("#relationshipP"),
+    poissonToggle: document.querySelector("#poissonToggle"),
+    playButton: document.querySelector("#playButton"),
+    playHero: document.querySelector("#playHero"),
+    resetButton: document.querySelector("#resetButton"),
+  };
+
+  function svgElement(name, attributes = {}) {
+    const node = document.createElementNS(NS, name);
+    Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, value));
+    return node;
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function minN() {
+    return Math.max(1, Math.ceil(state.lambda));
+  }
+
+  function sliderPositionFromN(n) {
+    const minimum = minN();
+    if (minimum === MAX_N) return 100;
+    return (Math.log(n / minimum) / Math.log(MAX_N / minimum)) * 100;
+  }
+
+  function nFromSliderPosition(position) {
+    const minimum = minN();
+    const value = minimum * Math.pow(MAX_N / minimum, Number(position) / 100);
+    return clamp(Math.round(value), minimum, MAX_N);
+  }
+
+  function distributionData() {
+    const p = state.lambda / state.n;
+    const chartLimit = Math.min(
+      60,
+      Math.max(8, Math.ceil(state.lambda + 5 * Math.sqrt(state.lambda) + 3))
+    );
+    const distanceLimit = Math.max(
+      state.n,
+      Math.ceil(state.lambda + 12 * Math.sqrt(state.lambda) + 30)
+    );
+    const binomialAll = ProbabilityLab.binomialPmf(state.n, p, distanceLimit);
+    const poissonAll = ProbabilityLab.poissonPmf(state.lambda, distanceLimit);
+    return {
+      p,
+      maxK: chartLimit,
+      binomial: binomialAll.slice(0, chartLimit + 1),
+      poisson: poissonAll.slice(0, chartLimit + 1),
+      tvDistance: ProbabilityLab.totalVariationDistance(binomialAll, poissonAll),
+    };
+  }
+
+  function formatProbability(value) {
+    if (value >= 0.1) return value.toFixed(3);
+    if (value >= 0.001) return value.toFixed(4);
+    return value.toExponential(2);
+  }
+
+  function qualityLabel(distance) {
+    if (distance < 0.01) return "几乎重合";
+    if (distance < 0.04) return "近似很好";
+    if (distance < 0.1) return "正在接近";
+    return "差异仍明显";
+  }
+
+  function updateSliderProgress(input) {
+    const progress = ((Number(input.value) - Number(input.min)) / (Number(input.max) - Number(input.min))) * 100;
+    input.style.setProperty("--range-progress", `${progress}%`);
+  }
+
+  function renderChart(data) {
+    const svg = els.chart;
+    const previousTitle = svg.querySelector("title");
+    const previousDesc = svg.querySelector("desc");
+    svg.replaceChildren();
+    if (previousTitle) svg.appendChild(previousTitle);
+    if (previousDesc) svg.appendChild(previousDesc);
+
+    const width = 920;
+    const height = 460;
+    const margin = { top: 18, right: 18, bottom: 50, left: 62 };
+    const innerWidth = width - margin.left - margin.right;
+    const innerHeight = height - margin.top - margin.bottom;
+    const count = data.maxK + 1;
+    const slot = innerWidth / count;
+    const barWidth = Math.max(5, slot * 0.68);
+    const maxProbability = Math.max(...data.binomial, ...data.poisson) * 1.14;
+    const y = (value) => margin.top + innerHeight - (value / maxProbability) * innerHeight;
+
+    const gridGroup = svgElement("g", { "aria-hidden": "true" });
+    for (let i = 0; i <= 4; i += 1) {
+      const probability = maxProbability * (i / 4);
+      const gridY = y(probability);
+      gridGroup.appendChild(svgElement("line", {
+        x1: margin.left,
+        x2: width - margin.right,
+        y1: gridY,
+        y2: gridY,
+        stroke: i === 0 ? "#9ca6a1" : "#dde1da",
+        "stroke-width": i === 0 ? 1.2 : 1,
+        "stroke-dasharray": i === 0 ? "0" : "3 6",
+      }));
+      const label = svgElement("text", {
+        x: margin.left - 12,
+        y: gridY + 4,
+        "text-anchor": "end",
+        fill: "#7b8782",
+        "font-size": 10,
+        "font-family": "Inter, sans-serif",
+      });
+      label.textContent = probability.toFixed(2);
+      gridGroup.appendChild(label);
+    }
+    svg.appendChild(gridGroup);
+
+    const tickEvery = Math.max(1, Math.ceil(count / 12));
+    for (let k = 0; k < count; k += 1) {
+      const centerX = margin.left + slot * (k + 0.5);
+      if (k % tickEvery === 0 || k === data.maxK) {
+        const tick = svgElement("text", {
+          x: centerX,
+          y: height - 23,
+          "text-anchor": "middle",
+          fill: "#6f7b76",
+          "font-size": 10,
+          "font-family": "Inter, sans-serif",
+        });
+        tick.textContent = String(k);
+        svg.appendChild(tick);
+      }
+
+      const b = data.binomial[k];
+      const poisson = data.poisson[k];
+      if (state.showPoisson) {
+        svg.appendChild(svgElement("rect", {
+          x: centerX - barWidth / 2,
+          y: y(poisson),
+          width: barWidth,
+          height: Math.max(0, margin.top + innerHeight - y(poisson)),
+          rx: 3,
+          fill: "rgba(255, 106, 61, 0.09)",
+          stroke: "#ff6a3d",
+          "stroke-width": 2,
+          "vector-effect": "non-scaling-stroke",
+        }));
+      }
+      svg.appendChild(svgElement("rect", {
+        x: centerX - barWidth * 0.31,
+        y: y(b),
+        width: barWidth * 0.62,
+        height: Math.max(0, margin.top + innerHeight - y(b)),
+        rx: 2.5,
+        fill: "#2857d9",
+        opacity: 0.9,
+      }));
+
+      const hitArea = svgElement("rect", {
+        x: margin.left + slot * k,
+        y: margin.top,
+        width: slot,
+        height: innerHeight,
+        fill: "transparent",
+        tabindex: 0,
+        role: "button",
+        "aria-label": `k 等于 ${k}，二项分布概率 ${formatProbability(b)}，泊松分布概率 ${formatProbability(poisson)}`,
+      });
+      const showTip = (event) => showTooltip(event, k, b, poisson);
+      hitArea.addEventListener("pointerenter", showTip);
+      hitArea.addEventListener("pointermove", showTip);
+      hitArea.addEventListener("pointerleave", hideTooltip);
+      hitArea.addEventListener("focus", (event) => showTooltip(event, k, b, poisson, centerX, y(Math.max(b, poisson))));
+      hitArea.addEventListener("blur", hideTooltip);
+      svg.appendChild(hitArea);
+    }
+  }
+
+  function showTooltip(event, k, binomial, poisson, svgX, svgY) {
+    els.tooltip.innerHTML = `
+      <strong>k = ${k}</strong>
+      <span><i style="background:#2857d9"></i>二项：${formatProbability(binomial)}</span><br />
+      <span><i style="border:1px solid #ff6a3d"></i>泊松：${formatProbability(poisson)}</span>
+    `;
+    els.tooltip.hidden = false;
+    const wrapRect = els.chartWrap.getBoundingClientRect();
+    let left;
+    let top;
+    if (event.pointerType || event.clientX) {
+      left = event.clientX - wrapRect.left + 12;
+      top = event.clientY - wrapRect.top - 76;
+    } else {
+      left = (svgX / 920) * wrapRect.width + 12;
+      top = (svgY / 460) * els.chart.getBoundingClientRect().height - 76;
+    }
+    left = clamp(left, 6, wrapRect.width - 160);
+    top = clamp(top, 4, wrapRect.height - 86);
+    els.tooltip.style.left = `${left}px`;
+    els.tooltip.style.top = `${top}px`;
+  }
+
+  function hideTooltip() {
+    els.tooltip.hidden = true;
+  }
+
+  function render() {
+    state.n = clamp(Math.round(state.n), minN(), MAX_N);
+    const data = distributionData();
+    const overlap = clamp(1 - data.tvDistance, 0, 1);
+
+    els.nValue.textContent = state.n.toLocaleString("zh-CN");
+    els.pValue.textContent = data.p.toFixed(4);
+    els.lambdaValue.textContent = state.lambda.toFixed(1);
+    els.overlapValue.textContent = `${(overlap * 100).toFixed(1)}%`;
+    els.distanceValue.textContent = `总变差距离 ${data.tvDistance.toFixed(4)}`;
+    els.qualityBadge.textContent = qualityLabel(data.tvDistance);
+    els.lambdaOutput.textContent = state.lambda.toFixed(1);
+    els.nOutput.textContent = state.n.toLocaleString("zh-CN");
+    els.nMinLabel.textContent = String(minN());
+    els.relationshipP.textContent = data.p.toFixed(4);
+
+    els.lambdaSlider.value = String(state.lambda);
+    els.nSlider.value = String(clamp(sliderPositionFromN(state.n), 0, 100));
+    els.poissonToggle.checked = state.showPoisson;
+    updateSliderProgress(els.lambdaSlider);
+    updateSliderProgress(els.nSlider);
+    renderChart(data);
+  }
+
+  function stopAnimation() {
+    state.playing = false;
+    if (state.animationFrame) cancelAnimationFrame(state.animationFrame);
+    state.animationFrame = null;
+    document.querySelectorAll("#playButton, #playHero").forEach((button) => button.classList.remove("is-playing"));
+    document.querySelector("#playButton .play-label").textContent = "自动增大 n";
+    els.playHero.lastChild.textContent = " 开始自动演示";
+  }
+
+  function startAnimation() {
+    if (state.playing) {
+      stopAnimation();
+      return;
+    }
+    if (state.n >= MAX_N * 0.98) state.n = Math.max(minN(), Math.ceil(state.lambda * 1.5));
+    state.playing = true;
+    document.querySelectorAll("#playButton, #playHero").forEach((button) => button.classList.add("is-playing"));
+    document.querySelector("#playButton .play-label").textContent = "暂停演示";
+    els.playHero.lastChild.textContent = " 暂停演示";
+    document.querySelector("#lab").scrollIntoView({ behavior: "smooth", block: "start" });
+
+    const startedAt = performance.now();
+    const startN = state.n;
+    const duration = 7600;
+    const frame = (now) => {
+      if (!state.playing) return;
+      const progress = clamp((now - startedAt) / duration, 0, 1);
+      const eased = progress < 0.5
+        ? 2 * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      state.n = Math.round(startN * Math.pow(MAX_N / startN, eased));
+      render();
+      if (progress < 1) {
+        state.animationFrame = requestAnimationFrame(frame);
+      } else {
+        stopAnimation();
+      }
+    };
+    state.animationFrame = requestAnimationFrame(frame);
+  }
+
+  els.lambdaSlider.addEventListener("input", (event) => {
+    stopAnimation();
+    state.lambda = Number(event.target.value);
+    state.n = Math.max(state.n, minN());
+    render();
+  });
+
+  els.nSlider.addEventListener("input", (event) => {
+    stopAnimation();
+    state.n = nFromSliderPosition(event.target.value);
+    render();
+  });
+
+  els.poissonToggle.addEventListener("change", (event) => {
+    state.showPoisson = event.target.checked;
+    render();
+  });
+
+  els.resetButton.addEventListener("click", () => {
+    stopAnimation();
+    state.lambda = 3;
+    state.n = 10;
+    state.showPoisson = true;
+    render();
+  });
+
+  document.querySelectorAll("[data-n]").forEach((button) => {
+    button.addEventListener("click", () => {
+      stopAnimation();
+      state.lambda = 3;
+      state.n = Number(button.dataset.n);
+      render();
+    });
+  });
+
+  els.playButton.addEventListener("click", startAnimation);
+  els.playHero.addEventListener("click", startAnimation);
+  render();
+})();
+
+    </script>
+  </body>
+</html>
